@@ -1,0 +1,1 @@
+{"gear":3,"bias":0,"risk":0,"cadence":{"gear":3,"regularCooldownSec":7200,"cneiCooldownSec":3600,"regularCooldownHuman":"2h","cneiCooldownHuman":"60min","cron":"*/2 * * * *","regularCadenceFixed":true,"pattern":"each regular branch is eligible exactly 2h after its latest canonical release; gear only affects cnei"}}

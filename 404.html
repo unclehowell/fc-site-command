@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>COMMAND Cockpit</title>
+<link rel="stylesheet" href="style.css">
+<meta name="description" content="COMMAND Cockpit v0.0.10.00">
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-overlay" id="login-overlay">
+    <div class="login-panel">
+        <div class="login-version" id="login-version">command</div>
+        <div class="login-title">COMMAND TERMINAL</div>
+        <div class="login-subtitle">AUTHORISED PERSONNEL ONLY</div>
+        <input type="password" class="login-input" id="login-pass" placeholder="KEY" autocomplete="off" inputmode="text" enterkeyhint="go">
+        <div class="login-error" id="login-error"></div>
+        <button class="login-btn" id="login-btn">VERIFY</button>
+    </div>
+</div>
+
+<!-- MAIN COCKPIT -->
+<div id="app" style="display:none">
+<div class="cockpit" id="cockpit">
+
+    <!-- WINDSHCREEN LAYER -->
+    <div class="windscreen">
+        <canvas id="track-canvas"></canvas>
+        <div id="graph-container"></div>
+        <!-- 3D NAVIGATION GUIDE OVERLAY -->
+        <div id="nav-guide-overlay" class="nav-guide-overlay" style="display:none">
+            <div class="nav-guide-card">
+                <div class="nav-guide-title">3D SPACE NAVIGATION</div>
+                <div class="nav-guide-keys">
+                    <div class="nav-key-row"><span class="nav-key">W</span><span class="nav-desc">Move Forward</span></div>
+                    <div class="nav-key-row"><span class="nav-key">S</span><span class="nav-desc">Move Backward</span></div>
+                    <div class="nav-key-row"><span class="nav-key">A</span><span class="nav-desc">Move Left</span></div>
+                    <div class="nav-key-row"><span class="nav-key">D</span><span class="nav-desc">Move Right</span></div>
+                    <div class="nav-key-row"><span class="nav-key">Mouse</span><span class="nav-desc">Look Around (click to lock)</span></div>
+                    <div class="nav-key-row"><span class="nav-key">Esc</span><span class="nav-desc">Release Mouse</span></div>
+                </div>
+                <div class="nav-guide-hint">Buildings represent GitHub releases with semantic version labels. Click a building to inspect.</div>
+                <button class="nav-guide-close" id="nav-guide-close">GOT IT</button>
+            </div>
+        </div>
+        <div id="md-viewer-overlay" class="md-viewer-overlay" style="display:none">
+            <div id="md-viewer-header" class="md-viewer-header"></div>
+            <textarea id="md-viewer-body" class="md-viewer-body" spellcheck="false"></textarea>
+        </div>
+    </div>
+
+    <!-- STATUS BAR (thin, between windscreen and controls) -->
+    <div class="status-bar">
+        <div class="status-bar-inner">
+            <button class="status-btn theme-btn" id="theme-toggle" title="Toggle theme">☀</button>
+            <button class="status-btn mode-3d-btn" id="mode-3d-toggle" title="Toggle 3D space mode">🏛</button>
+            <span class="version-label">v<span id="version-label">--</span></span>
+            <button class="status-btn toggle-btn" id="controls-toggle-bar" title="Toggle controls panel">▼</button>
+            <button class="status-btn toggle-btn graph-toggle-bar" id="graph-toggle-bar" title="Toggle graph/3D view">🌐</button>
+            <span id="cache-status" class="cache-status-text"></span>
+            <button id="btn-deploy" class="deploy-btn" style="display:none">DEPLOY ALL</button>
+            <label class="auto-toggle">
+                <input type="checkbox" id="auto-toggle-input">
+                AUTO
+            </label>
+            <button class="status-btn" id="logout-btn" title="Lock">LOCK</button>
+        </div>
+    </div>
+
+    <!-- CONTROLS SECTION (collapsible lower half) -->
+    <div class="controls-section" id="controls-section">
+        <button class="controls-toggle" id="controls-toggle" title="Toggle controls">▼</button>
+        <div class="controls-body" id="controls-body">
+
+            <!-- COLUMN 1: JOYSTICK + INDICATORS -->
+            <div class="controls-col col-left">
+                <div class="col-label">NAVIGATION</div>
+                <div class="joystick-area">
+                    <div class="joystick-side-btns">
+                        <button class="arrow-btn" id="btn-left-menu" title="Open left files">◀</button>
+                    </div>
+                    <div class="control-module">
+                        <canvas id="joystick-canvas"></canvas>
+                    </div>
+                    <div class="joystick-side-btns">
+                        <button class="arrow-btn" id="btn-right-menu" title="Open right files">▶</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 2: JARVIS -->
+            <div class="controls-col col-center">
+                <div class="col-label">J.A.R.V.I.S</div>
+                <div class="center-console" id="center-console">
+                    <div id="jarvis-header">
+                        <div class="dot" id="jarvis-dot"></div>
+                        <span class="jarvis-title">COMMAND COCKPIT</span>
+                        <span id="jarvis-status" class="jarvis-status">Ready</span>
+                        <button id="graph-toggle" class="graph-toggle-btn active" title="Toggle road/graph view">⬡</button>
+                    </div>
+                    <div id="jarvis-messages"></div>
+                    <div id="jarvis-bar">
+                        <button id="jarvis-mute" class="jarvis-mute-btn" title="Toggle voice output">🔊</button>
+                        <textarea id="jarvis-txt" rows="1" placeholder="Type a message..." onkeydown="jarvisOnKey(event)"></textarea>
+                        <button class="jarvis-send-btn" id="jarvis-send" onclick="jarvisSend()">SEND</button>
+                    </div>
+                    <div class="hu-footer">
+                        <button id="jarvis-call" class="jarvis-call-btn">📞 Call</button>
+                        <div class="hu-vol-wrap" id="hu-vol-wrap">
+                            <div class="hu-vol-track" id="hu-vol-track"><div class="hu-vol-fill" id="hu-vol-fill"></div></div>
+                            <div class="hu-vol-knob" id="hu-vol-knob"></div>
+                            <span class="hu-vol-pct" id="hu-vol-pct">70%</span>
+                        </div>
+                        <button class="hu-mute-btn" id="hu-mute-btn" title="Mute radio">◼</button>
+                        <span class="hu-status-txt" id="hu-status-txt">ON AIR</span>
+                    </div>
+                    <audio id="rmc-audio" crossorigin="anonymous"></audio>
+                    <div class="current-branch-info">
+                        <span>ACTIVE_SYS: <span id="active-branch-name">---</span></span>
+                        <span>GEAR_MODE: <span id="gear-val-text">3</span></span>
+                    </div>
+                    <div class="branch-dots" id="branch-dots"></div>
+                </div>
+            </div>
+
+            <!-- COLUMN 3: GEAR + FUEL GRAPHS -->
+            <div class="controls-col col-right">
+                <div class="col-label">SYSTEMS</div>
+                <div class="right-module">
+                    <div class="gear-display" id="gear-value">3</div>
+                    <div class="shifter-base" id="shifter-base">
+                        <div class="shifter-notch" data-val="1">1</div>
+                        <div class="shifter-notch" data-val="2">2</div>
+                        <div class="shifter-notch" data-val="3">3</div>
+                        <div class="shifter-notch" data-val="4">4</div>
+                        <div class="shifter-notch" data-val="5">5</div>
+                        <div class="shifter-notch" data-val="6">6</div>
+                        <div class="shifter-notch" data-val="7">7</div>
+                        <div class="shifter-notch" data-val="8">8</div>
+                        <div class="shifter-notch" data-val="9">9</div>
+                        <div class="shifter-notch" data-val="10">10</div>
+                        <div class="shifter-thumb" id="shifter-thumb">⬡</div>
+                    </div>
+                    <div class="fuel-grid" id="fuel-grid">
+                        <!-- Populated dynamically by loadFuel() -->
+                        <div class="fuel-group" data-metric="steer">
+                            <div class="fuel-label">STEER</div>
+                            <div class="fuel-bars">
+                                <div class="fuel-bar" style="height:50%"></div>
+                                <div class="fuel-bar" style="height:52%"></div>
+                                <div class="fuel-bar" style="height:48%"></div>
+                                <div class="fuel-bar" style="height:50%"></div>
+                                <div class="fuel-bar" style="height:45%"></div>
+                                <div class="fuel-bar" style="height:55%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- OVERLAYS -->
+    <div class="branch-overlay-backdrop" id="branch-backdrop"></div>
+
+    <!-- LEFT FILES MENU -->
+    <div class="side-files-menu left" id="left-files-menu">
+        <div class="side-files-header">
+            <span class="side-files-title">â LEFT MD FILES</span>
+            <button class="side-files-close" id="close-left-files">â</button>
+        </div>
+        <div class="side-files-scroll" id="left-files-list"></div>
+        <div class="side-files-footer">
+            <span class="side-files-badge">GREEN HEMISPHERE</span>
+        </div>
+    </div>
+
+    <!-- RIGHT FILES MENU -->
+    <div class="side-files-menu right" id="right-files-menu">
+        <div class="side-files-header">
+            <span class="side-files-title">â¶ RIGHT MD FILES</span>
+            <button class="side-files-close" id="close-right-files">â</button>
+        </div>
+        <div class="side-files-scroll" id="right-files-list"></div>
+        <div class="side-files-footer">
+            <span class="side-files-badge">BLUE HEMISPHERE</span>
+        </div>
+    </div>
+
+    <!-- LEFT PANEL (legacy branch browser) -->
+    <div class="branch-slide-menu left-panel-scroll-wrapper left" id="left-branch-menu">
+        <div class="branch-menu-header">
+            <span>BRANCHES</span>
+            <button class="branch-close-btn" id="btn-close-left">✕</button>
+        </div>
+        <div class="left-panel-scroll" id="left-branch-list"></div>
+        <div class="cache-bar">
+            <span id="cache-status-legacy"></span>
+            <button id="btn-deploy-legacy" class="deploy-btn" style="display:none">DEPLOY ALL</button>
+        </div>
+    </div>
+
+    <!-- EDITOR MODAL -->
+    <div class="editor-overlay" id="editor-overlay" style="display:none">
+        <div class="editor-modal">
+            <div class="editor-header">
+                <span id="editor-title"></span>
+                <button class="branch-close-btn" id="btn-close-editor">â</button>
+            </div>
+            <textarea id="editor-textarea" spellcheck="false"></textarea>
+            <div class="editor-footer">
+                <span id="editor-status"></span>
+                <div style="display:flex;gap:8px">
+                    <button class="save-btn" id="btn-save-edit">SAVE</button>
+                    <button class="deploy-btn" id="btn-deploy-edit">SAVE & DEPLOY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<!-- CONFIRMATION MODAL -->
+<div class="confirm-overlay" id="confirm-overlay" style="display:none">
+    <div class="confirm-modal">
+        <div class="confirm-title">CONFIRM DIRECTION</div>
+        <div class="confirm-body" id="confirm-body">Are you sure?</div>
+        <div class="confirm-actions" id="confirm-actions">
+            <button class="confirm-btn confirm-no" id="confirm-no">NO</button>
+            <button class="confirm-btn confirm-yes" id="confirm-yes">YES</button>
+        </div>
+        <div class="confirm-statement" id="confirm-statement" style="display:none">The flywheel will now favour the MD files in that direction.</div>
+    </div>
+</div>
+
+<script data-cfasync="false">
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(reg) { reg.unregister(); });
+  });
+  caches.keys().then(function(keys) {
+    keys.forEach(function(k) { caches.delete(k); });
+  });
+}
+</script>
+<script data-cfasync="false" src="https://d3js.org/d3.v7.min.js"></script>
+<script data-cfasync="false" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script data-cfasync="false" src="racetrack.js"></script>
+<script data-cfasync="false" src="graph.js"></script>
+<script data-cfasync="false" src="app.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4da919858e5d106',t:'MTc5MjUyNjAwNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
